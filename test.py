@@ -2,7 +2,13 @@ from app.generators.intent_extractor import extract_intent
 from app.generators.system_designer import design_system
 from app.generators.schema_generator import generate_schema
 
-from app.validators.consistency_validator import validate_consistency
+from app.validators.schema_validator import (
+    validate_schema_structure
+)
+
+from app.validators.consistency_validator import (
+    validate_consistency
+)
 
 from app.generators.repair_engine import repair_schema
 
@@ -64,12 +70,24 @@ print(schemas)
 
 
 # =========================
-# STAGE 4 — VALIDATION
+# STAGE 4A — SCHEMA VALIDATION
+# =========================
+
+schema_validation = validate_schema_structure(
+    schemas
+)
+
+print("\n===== SCHEMA VALIDATION =====")
+print(schema_validation)
+
+
+# =========================
+# STAGE 4B — CONSISTENCY VALIDATION
 # =========================
 
 validation = validate_consistency(schemas)
 
-print("\n===== VALIDATION =====")
+print("\n===== CONSISTENCY VALIDATION =====")
 print(validation)
 
 
@@ -77,10 +95,25 @@ print(validation)
 # STAGE 5 — REPAIR
 # =========================
 
+all_errors = []
+
+if not schema_validation["valid"]:
+
+    all_errors.extend(
+        schema_validation["errors"]
+    )
+
 if not validation["valid"]:
 
+    all_errors.extend(
+        validation["errors"]
+    )
+
+
+if all_errors:
+
     repaired = repair_schema(
-        validation["errors"],
+        all_errors,
         schemas
     )
 
@@ -100,14 +133,14 @@ else:
 
 latency = metrics.end_timer(start_time)
 
-if validation["valid"]:
+if not all_errors:
 
     metrics.record_success()
 
 else:
 
     metrics.record_failure(
-        validation["errors"]
+        all_errors
     )
 
 
